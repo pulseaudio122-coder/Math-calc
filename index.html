@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Calculator</title>
+  <style>
+    :root{
+      --bg:#0b0c10;
+      --panel:#131418;
+      --accent:#4caf50;
+      --muted:#9aa0a6;
+      --op:#ff9500;
+      --danger:#e74c3c;
+    }
+    html,body{height:100%;}
+    body{
+      margin:0;
+      font-family:Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
+      background:linear-gradient(180deg,#07070a 0%, #0f1113 100%);
+      color:#e6eef4;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:24px;
+    }
+    .calculator{
+      width:340px;
+      background:var(--panel);
+      border-radius:16px;
+      box-shadow:0 8px 30px rgba(2,6,23,0.6);
+      padding:18px;
+    }
+    .display{
+      height:72px;
+      background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);
+      border-radius:10px;
+      display:flex;
+      align-items:flex-end;
+      justify-content:flex-end;
+      padding:12px 14px;
+      font-size:28px;
+      color:#ffffff;
+      word-break:break-all;
+      box-sizing:border-box;
+      overflow:hidden;
+    }
+    .expression{
+      font-size:14px;
+      color:var(--muted);
+      width:100%;
+      text-align:right;
+      margin-bottom:4px;
+    }
+    .result{
+      font-weight:600;
+      font-size:26px;
+      width:100%;
+      text-align:right;
+    }
+    .keys{
+      margin-top:12px;
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
+      gap:10px;
+    }
+    button.key{
+      background:transparent;
+      border:0;
+      border-radius:10px;
+      padding:18px 12px;
+      font-size:18px;
+      color:#e6eef4;
+      cursor:pointer;
+      transition:transform .08s ease, box-shadow .08s ease;
+      box-shadow:inset 0 -2px 0 rgba(0,0,0,0.2);
+    }
+    button.key:active{transform:translateY(1px);}
+    button.key.op{background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent); color:var(--op);}
+    button.key.wide{grid-column:span 2;}
+    button.key.clear{color:var(--danger);}    
+    @media (max-width:380px){
+      .calculator{width:100%;}
+    }
+  </style>
+</head>
+<body>
+  <div class="calculator" role="application" aria-label="Calculator">
+    <div class="display" id="display" aria-live="polite">
+      <div class="expression" id="expression">&nbsp;</div>
+      <div class="result" id="result">0</div>
+    </div>
+
+    <div class="keys" id="keys">
+      <button class="key clear" data-action="all-clear">AC</button>
+      <button class="key" data-action="delete">DEL</button>
+      <button class="key" data-value="(" aria-label="open parenthesis">(</button>
+      <button class="key op" data-value=")">)</button>
+
+      <button class="key" data-value="7">7</button>
+      <button class="key" data-value="8">8</button>
+      <button class="key" data-value="9">9</button>
+      <button class="key op" data-value="/">÷</button>
+
+      <button class="key" data-value="4">4</button>
+      <button class="key" data-value="5">5</button>
+      <button class="key" data-value="6">6</button>
+      <button class="key op" data-value="*">×</button>
+
+      <button class="key" data-value="1">1</button>
+      <button class="key" data-value="2">2</button>
+      <button class="key" data-value="3">3</button>
+      <button class="key op" data-value="-">−</button>
+
+      <button class="key wide" data-value="0">0</button>
+      <button class="key" data-value=".">.</button>
+      <button class="key op" data-action="calculate">=</button>
+      <button style="display:none" id="hiddenFocus"> </button>
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      const expressionEl = document.getElementById('expression');
+      const resultEl = document.getElementById('result');
+      let expr = '';
+
+      const keys = document.getElementById('keys');
+      keys.addEventListener('click', e => {
+        const btn = e.target.closest('button');
+        if(!btn) return;
+        const action = btn.dataset.action;
+        const val = btn.dataset.value;
+
+        if(action === 'all-clear') return allClear();
+        if(action === 'delete') return del();
+        if(action === 'calculate') return calculate();
+        if(val) return append(val);
+      });
+
+      function append(ch){
+        // prevent leading zeros like 00
+        if(ch === '.' ){
+          const lastNumber = getLastNumber(expr);
+          if(lastNumber.includes('.')) return; // already decimal
+          if(lastNumber === '') ch = '0.';
+        }
+        // prevent two operators in a row (except unary minus after operator or '(' )
+        if(isOperator(ch)){
+          if(expr === '' && ch !== '-') return; // can't start with operator except -
+          const last = expr.slice(-1);
+          if(isOperator(last) && !(ch === '-' && last === '(')){
+            // replace operator
+            expr = expr.slice(0,-1) + ch;
+            update();
+            return;
+          }
+        }
+        expr += ch;
+        update();
+      }
+
+      function isOperator(c){
+        return ['+','-','*','/'].includes(c);
+      }
+
+      function getLastNumber(s){
+        const m = s.match(/([0-9]*\.?[0-9]*)$/);
+        return m ? m[0] : '';
+      }
+
+      function allClear(){ expr = ''; update(); }
+      function del(){ expr = expr.slice(0,-1); update(); }
+
+      function calculate(){
+        if(!expr) return;
+        try{
+          // replace unicode symbols with JS operators
+          const safe = expr.replace(/÷/g,'/').replace(/×/g,'*').replace(/−/g,'-');
+          // simple safety: only allow digits, operators, parentheses and dot
+          if(!/^[0-9+\-*/(). ]+$/.test(safe)) throw new Error('Invalid characters');
+          // Evaluate
+          const value = Function('return (' + safe + ')')();
+          if(value === undefined || Number.isNaN(value)) throw new Error('Bad expression');
+          expr = String(value);
+          update();
+        }catch(err){
+          resultEl.textContent = 'Error';
+        }
+      }
+
+      function update(){
+        expressionEl.textContent = expr || '\u00A0';
+        // live preview: try evaluation of current expr
+        if(expr){
+          try{
+            const safe = expr.replace(/÷/g,'/').replace(/×/g,'*').replace(/−/g,'-');
+            if(/^[0-9+\-*/(). ]+$/.test(safe)){ 
+              const v = Function('return (' + safe + ')')();
+              if(v !== undefined && !Number.isNaN(v)) resultEl.textContent = v;
+              else resultEl.textContent = '0';
+            } else {
+              resultEl.textContent = '';
+            }
+          }catch(e){ resultEl.textContent = '' }
+        } else {
+          resultEl.textContent = '0';
+        }
+      }
+
+      // keyboard support
+      window.addEventListener('keydown', e => {
+        if(e.key >= '0' && e.key <= '9') return append(e.key);
+        if(['+','-','*','/','(',')','.'].includes(e.key)) return append(e.key);
+        if(e.key === 'Enter' || e.key === '='){ e.preventDefault(); return calculate(); }
+        if(e.key === 'Backspace') return del();
+        if(e.key === 'Escape') return allClear();
+      });
+
+      // make buttons reachable by keyboard
+      Array.from(document.querySelectorAll('button.key')).forEach(b=>{
+        b.tabIndex = 0;
+      });
+
+      update();
+    })();
+  </script>
+</body>
+</html>
