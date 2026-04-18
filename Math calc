@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>My Game Hub</title>
+  <style>
+    body {
+      font-family: Arial;
+      background: #0f0f0f;
+      color: white;
+      text-align: center;
+    }
+
+    h1 {
+      margin-top: 20px;
+    }
+
+    .container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-top: 20px;
+    }
+
+    .game {
+      background: #1e1e1e;
+      border-radius: 10px;
+      padding: 15px;
+      margin: 10px;
+      width: 200px;
+      transition: 0.3s;
+    }
+
+    .game:hover {
+      transform: scale(1.05);
+      background: #2a2a2a;
+    }
+
+    a {
+      color: cyan;
+      text-decoration: none;
+      font-weight: bold;
+    }
+
+    button {
+      margin-top: 10px;
+      padding: 8px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+
+<body>
+
+<h1>🎮 My Game Hub</h1>
+<p>Click a game to play</p>
+
+<div class="container">
+
+  <div class="game">
+    <h3>Game 1</h3>
+    <a href="https://example.com" target="_blank">Play</a>
+  </div>
+
+  <div class="game">
+    <h3>Game 2</h3>
+    <a href="https://example.com" target="_blank">Play</a>
+  </div>
+
+  <div class="game">
+    <h3>Game 3</h3>
+    <a href="https://example.com" target="_blank">Play</a>
+  </div>
+
+</div>
+
+</body>
+</html>
